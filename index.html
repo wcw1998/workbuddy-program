@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ff6b6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>今天吃啥 · 吃货转盘</title>
+<style>
+  :root{
+    --bg:#fff8f2;
+    --card:#ffffff;
+    --ink:#3d2c29;
+    --ink-soft:#8a736c;
+    --line:#f0e2d8;
+    --primary:#ff6b6b;
+    --primary-deep:#e8503f;
+    --accent:#ffb454;
+    --ok:#3ec98a;
+    --danger:#e05252;
+    --shadow:0 6px 20px rgba(214,150,120,.16);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(circle at 12% 8%, #ffe9d6 0%, transparent 42%),
+      radial-gradient(circle at 88% 6%, #ffe0e0 0%, transparent 38%),
+      linear-gradient(180deg,#fff9f4 0%,#fff4ec 100%);
+    background-attachment:fixed;
+    color:var(--ink);
+    min-height:100vh;
+    padding:20px 16px 48px;
+  }
+  .wrap{max-width:1000px;margin:0 auto}
+
+  /* ---------- 顶部 ---------- */
+  header{text-align:center;margin-bottom:18px}
+  h1{
+    margin:0 0 6px;
+    font-size:clamp(22px,5vw,30px);
+    letter-spacing:1px;
+  }
+  .sub{color:var(--ink-soft);font-size:13px;margin:0}
+
+  /* ---------- 布局 ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(320px,1fr) minmax(280px,360px);
+    gap:22px;
+    align-items:start;
+    margin-top:18px;
+  }
+  @media (max-width:820px){
+    .layout{grid-template-columns:1fr;gap:16px}
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:18px;
+    box-shadow:var(--shadow);
+  }
+  .card h2{
+    margin:0 0 12px;
+    font-size:15px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:space-between;
+    color:var(--ink);
+  }
+  .card h2 .count{font-weight:500;font-size:12px;color:var(--ink-soft)}
+
+  /* ---------- 输入 ---------- */
+  .input-row{display:flex;gap:8px}
+  .input-row input{
+    flex:1;min-width:0;
+    border:1.5px solid var(--line);
+    background:#fffdfb;
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:15px;
+    color:var(--ink);
+    outline:none;
+    transition:.18s;
+  }
+  .input-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,107,107,.13)}
+  .btn{
+    border:none;cursor:pointer;
+    border-radius:12px;
+    padding:12px 18px;
+    font-size:15px;font-weight:600;
+    font-family:inherit;
+    transition:.16s;
+    white-space:nowrap;
+  }
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(255,107,107,.32)}
+  .btn-primary:hover{background:var(--primary-deep)}
+  .btn-ghost{background:#fff;color:var(--ink-soft);border:1.5px solid var(--line)}
+  .btn-ghost:hover{background:#fff6f0;color:var(--primary)}
+  .btn-tiny{padding:6px 11px;font-size:12.5px;border-radius:9px}
+
+  /* ---------- 食物列表 ---------- */
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;min-height:36px}
+  .tag{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#fff4ee;
+    border:1px solid #ffdfd2;
+    color:#c25a46;
+    border-radius:999px;
+    padding:7px 10px 7px 14px;
+    font-size:14px;
+    animation:pop .22s ease;
+  }
+  @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  .tag button{
+    border:none;background:transparent;cursor:pointer;
+    color:#d78b7b;font-size:15px;line-height:1;
+    padding:2px 4px;border-radius:50%;
+    transition:.15s;
+  }
+  .tag button:hover{background:#ffd9cb;color:var(--danger)}
+  .empty{
+    text-align:center;color:#c9b3a9;font-size:13.5px;
+    padding:22px 10px;line-height:1.9;
+  }
+  .empty b{color:var(--primary)}
+
+  /* ---------- 转盘 ---------- */
+  .wheel-box{
+    position:relative;
+    width:100%;max-width:420px;
+    aspect-ratio:1/1;
+    margin:0 auto;
+    filter:drop-shadow(0 10px 24px rgba(214,150,120,.22));
+  }
+  #wheel{width:100%;height:100%;display:block;border-radius:50%}
+  .pointer{
+    position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+    font-size:30px;line-height:1;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.18));
+    z-index:3;pointer-events:none;
+    transition:transform .12s;
+  }
+  .pointer.tick{transform:translateX(-50%) rotate(0deg) scale(1.18)}
+  .spin-btn{
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:27%;height:27%;
+    border-radius:50%;
+    border:5px solid #fff;
+    background:linear-gradient(150deg,#ff8a6b,#ff5a5a);
+    color:#fff;font-weight:800;
+    font-size:clamp(13px,3.4vw,17px);
+    font-family:inherit;letter-spacing:1px;
+    cursor:pointer;z-index:2;
+    box-shadow:0 6px 18px rgba(230,90,80,.42);
+    transition:.16s;
+  }
+  .spin-btn:hover:not(:disabled){transform:translate(-50%,-50%) scale(1.06)}
+  .spin-btn:active:not(:disabled){transform:translate(-50%,-50%) scale(.94)}
+  .spin-btn:disabled{opacity:.6;cursor:not-allowed;box-shadow:none}
+
+  .result{
+    text-align:center;margin-top:16px;min-height:56px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  }
+  .result .label{font-size:12.5px;color:var(--ink-soft)}
+  .result .value{
+    font-size:clamp(20px,5vw,27px);font-weight:800;color:var(--primary-deep);
+    letter-spacing:.5px;word-break:break-all;
+  }
+  .result .value.hit{animation:landing .5s ease}
+  @keyframes landing{0%{transform:scale(.6);opacity:.3}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+  .result-actions{
+    display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center;
+    animation:fadeUp .35s ease;
+  }
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .btn-eaten{background:var(--ok);color:#fff;box-shadow:0 3px 10px rgba(62,201,138,.34)}
+  .btn-eaten:hover{background:#34b87a}
+
+  .spin-tools{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+
+  /* ---------- 记录 ---------- */
+  .history{list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto}
+  .history li{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 2px 9px 8px;border-bottom:1px dashed var(--line);
+    font-size:14.5px;border-radius:8px;transition:.15s;
+  }
+  .history li:hover{background:#fff8f4}
+  .history li:last-child{border-bottom:none}
+  .history .h-left{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .history .h-food{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .history .h-time{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .history .h-del{
+    flex:none;border:1.5px solid var(--line);background:#fff;
+    color:#d78b7b;width:26px;height:26px;border-radius:50%;
+    font-size:16px;line-height:1;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
+    transition:.15s;
+  }
+  .history .h-del:hover{background:#ffe3d8;border-color:#ffc7b4;color:var(--danger)}
+  .history .h-del:active{transform:scale(.88)}
+  .history::-webkit-scrollbar{width:5px}
+  .history::-webkit-scrollbar-thumb{background:#f0d8cc;border-radius:9px}
+
+  /* ---------- 底部 ---------- */
+  footer{
+    text-align:center;margin-top:26px;color:#c3a99e;font-size:12px;line-height:1.9;
+  }
+  footer b{color:var(--primary);font-weight:600}
+
+  /* 手机优化 */
+  @media (max-width:820px){
+    body{padding:14px 12px 40px}
+    .card{padding:15px;border-radius:17px}
+    .card h2{font-size:14px}
+    .input-row{flex-wrap:wrap}
+    .input-row input{flex:1 1 100%}
+    .input-row .btn{flex:1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🍜 今天吃啥</h1>
+    <p class="sub">想吃的先记下来 · 犯难了就让转盘替你决定</p>
+  </header>
+
+  <div class="layout">
+    <!-- 左：输入 + 转盘 -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <section class="card">
+        <h2>想吃的东西 <span class="count" id="foodCount"></span></h2>
+        <div class="input-row">
+          <input id="foodInput" type="text" maxlength="20" placeholder="比如：麻辣烫、日料、螺蛳粉…" autocomplete="off" enterkeyhint="done">
+          <button class="btn btn-primary" id="addBtn">添加</button>
+        </div>
+        <div class="tags" id="tags"></div>
+      </section>
+
+      <section class="card">
+        <h2>吃货转盘</h2>
+        <div class="wheel-box">
+          <div class="pointer" id="pointer">🔻</div>
+          <canvas id="wheel" width="840" height="840"></canvas>
+          <button class="spin-btn" id="spinBtn">开转</button>
+        </div>
+        <div class="result" id="result">
+          <span class="label">转转盘，交给命运</span>
+        </div>
+        <div class="spin-tools">
+          <button class="btn btn-ghost btn-tiny" id="presetBtn">填入一批常见食物</button>
+          <button class="btn btn-ghost btn-tiny" id="clearBtn">清空所有</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 右：记录 -->
+    <aside style="display:flex;flex-direction:column;gap:18px">
+      <section class="card">
+        <h2>今天吃了啥 <span class="count"><button class="btn btn-ghost btn-tiny" id="clearHistory">清空</button></span></h2>
+        <ul class="history" id="history"></ul>
+        <div class="empty" id="historyEmpty">还没有记录哦<br>转一次转盘就会自动记下来</div>
+      </section>
+    </aside>
+  </div>
+
+  <footer>
+    数据只保存在<b>你自己的浏览器</b>里 · 不上传、不联网、永久免费<br>
+    手机可点「分享 → 添加到主屏幕」，像 App 一样用 ✨
+  </footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var STORE_FOODS = 'eatwhat.foods.v1';
+  var STORE_HISTORY = 'eatwhat.history.v1';
+  var MAX_HISTORY = 60;
+
+  var COLORS = ['#ff8a6b','#ffb454','#ffd166','#a8d8a0','#6fc3a0','#7fb8e0','#b49ae0','#ef9bc4','#f58f8f','#9ad0c9','#ffc48a','#c9b6e4'];
+
+  var PRESETS = ['麻辣烫','火锅','日料','螺蛳粉','重庆小面','汉堡','披萨','黄焖鸡','沙县小吃','烤肉','麻辣香锅','烧腊饭','寿司','炸鸡','兰州拉面','酸菜鱼','米线','盖浇饭','烤鱼','石锅拌饭'];
+
+  var foods = [];
+  var history = [];
+  var rotation = 0;      // 当前弧度
+  var spinning = false;
+
+  var $input = document.getElementById('foodInput');
+  var $addBtn = document.getElementById('addBtn');
+  var $tags = document.getElementById('tags');
+  var $count = document.getElementById('foodCount');
+  var $canvas = document.getElementById('wheel');
+  var $spinBtn = document.getElementById('spinBtn');
+  var $result = document.getElementById('result');
+  var $pointer = document.getElementById('pointer');
+  var $history = document.getElementById('history');
+  var $historyEmpty = document.getElementById('historyEmpty');
+  var ctx = $canvas.getContext('2d');
+
+  /* ---------------- 存储 ---------------- */
+  function load(){
+    try{
+      var f = JSON.parse(localStorage.getItem(STORE_FOODS) || '[]');
+      var h = JSON.parse(localStorage.getItem(STORE_HISTORY) || '[]');
+      foods = Array.isArray(f) ? f.filter(function(x){return typeof x === 'string' && x.trim();}) : [];
+      history = Array.isArray(h) ? h : [];
+    }catch(e){ foods = []; history = []; }
+  }
+  function saveFoods(){
+    try{ localStorage.setItem(STORE_FOODS, JSON.stringify(foods)); }catch(e){}
+  }
+  function saveHistory(){
+    try{ localStorage.setItem(STORE_HISTORY, JSON.stringify(history)); }catch(e){}
+  }
+
+  /* ---------------- 食物列表 ---------------- */
+  function renderTags(){
+    $tags.innerHTML = '';
+    if(!foods.length){
+      var d = document.createElement('div');
+      d.className = 'empty';
+      d.innerHTML = '还没有想吃的？<br>在上面输入框打字，按 <b>回车</b> 或点「添加」<br>试试右下角的「填入一批常见食物」';
+      d.style.width = '100%';
+      $tags.appendChild(d);
+    }else{
+      foods.forEach(function(name, i){
+        var t = document.createElement('span');
+        t.className = 'tag';
+        var s = document.createElement('span');
+        s.textContent = name;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = '×';
+        b.title = '删除';
+        b.addEventListener('click', function(){ removeFood(i); });
+        t.appendChild(s);
+        t.appendChild(b);
+        $tags.appendChild(t);
+      });
+    }
+    $count.textContent = foods.length ? ('共 ' + foods.length + ' 样') : '';
+    drawWheel();
+  }
+
+  function addFood(){
+    var v = $input.value.trim();
+    if(!v) return;
+    if(v.length > 20) v = v.slice(0,20);
+    if(foods.indexOf(v) !== -1){
+      flashResult('「' + v + '」已经在列表里啦', false);
+      $input.value = '';
+      return;
+    }
+    foods.push(v);
+    saveFoods();
+    renderTags();
+    $input.value = '';
+    $input.focus();
+  }
+
+  function removeFood(i){
+    foods.splice(i,1);
+    saveFoods();
+    renderTags();
+    flashResult('已删除', false);
+  }
+
+  /* ---------------- 画转盘 ---------------- */
+  var SIZE = 840, CX = SIZE/2, CY = SIZE/2, R = SIZE/2 - 8;
+
+  function drawWheel(){
+    ctx.clearRect(0,0,SIZE,SIZE);
+
+    var n = foods.length;
+    if(n === 0){
+      // 空状态：画一个灰色环
+      ctx.beginPath();
+      ctx.arc(CX,CY,R,0,Math.PI*2);
+      ctx.lineWidth = 26;
+      ctx.strokeStyle = '#f4e6dd';
+      ctx.stroke();
+      ctx.fillStyle = '#c9b3a9';
+      ctx.font = 'bold 60px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('先加点想吃的', CX, CY - 90);
+      return;
+    }
+
+    var seg = Math.PI*2/n;
+
+    // 扇形
+    for(var i=0;i<n;i++){
+      var start = rotation + i*seg;
+      var end = start + seg;
+      ctx.beginPath();
+      ctx.moveTo(CX,CY);
+      ctx.arc(CX,CY,R,start,end);
+      ctx.closePath();
+      ctx.fillStyle = COLORS[i % COLORS.length];
+      ctx.fill();
+      if(n <= 40){
+        ctx.strokeStyle = 'rgba(255,255,255,.85)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+    }
+
+    // 文字
+    ctx.save();
+    ctx.translate(CX,CY);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for(var j=0;j<n;j++){
+      var mid = rotation + j*seg + seg/2;
+      ctx.save();
+      ctx.rotate(mid);
+      var txt = foods[j];
+      if(txt.length > 8) txt = txt.slice(0,8) + '…';
+      var fs = Math.min(38, Math.max(17, 520/Math.max(n,6) * (n>16?1.05:1.35)));
+      fs = Math.min(fs, R*0.75/Math.max(1,Math.ceil(txt.length/2)));
+      fs = Math.max(fs, 13);
+      ctx.font = '700 ' + fs + 'px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillStyle = '#5a4038';
+      ctx.fillText(txt, R - 22, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // 外圈
+    ctx.beginPath();
+    ctx.arc(CX,CY,R,0,Math.PI*2);
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+  }
+
+  /* ---------------- 抽奖 ---------------- */
+  function spin(){
+    var n = foods.length;
+    if(spinning) return;
+    if(n < 2){
+      flashResult(n === 0 ? '先添加想吃的食物吧 🙃' : '至少要有 2 样才能转哦', false);
+      return;
+    }
+
+    spinning = true;
+    $spinBtn.disabled = true;
+    $spinBtn.textContent = '…';
+    $result.innerHTML = '<span class="label">转盘飞速旋转中…</span>';
+
+    var seg = Math.PI*2/n;
+    // 随机选中一个索引（真实随机）
+    var target = Math.floor(Math.random()*n);
+
+    // 每 2π 有 n 个扇形；让 target 扇形的中点停在正上方（-π/2）
+    // mid = rotation + target*seg + seg/2 ≡ -π/2  (mod 2π)
+    var base = -Math.PI/2 - (target*seg + seg/2);
+
+    var turns = 5 + Math.floor(Math.random()*3);          // 5~7 圈
+    var startRot = rotation;
+    var endRot = base + Math.PI*2*turns;
+    // 保证单调递增（一直顺时针转）
+    while(endRot < startRot + Math.PI*2*5) endRot += Math.PI*2;
+
+    var duration = 4200 + Math.random()*900;
+    var t0 = null;
+
+    function easeOut(t){ return 1 - Math.pow(1-t, 3.4); }
+
+    function frame(ts){
+      if(t0 === null) t0 = ts;
+      var p = Math.min((ts - t0)/duration, 1);
+      rotation = startRot + (endRot - startRot) * easeOut(p);
+      drawWheel();
+      if(p < 1){
+        requestAnimationFrame(frame);
+      }else{
+        rotation = endRot % (Math.PI*2);
+        drawWheel();
+        finish(target);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function finish(target){
+    spinning = false;
+    $spinBtn.disabled = false;
+    $spinBtn.textContent = '再转一次';
+    var name = foods[target];
+
+    $result.innerHTML = '';
+    var l = document.createElement('span');
+    l.className = 'label';
+    l.textContent = '今天就吃';
+    var v = document.createElement('span');
+    v.className = 'value hit';
+    v.textContent = '🎉 ' + name;
+    $result.appendChild(l);
+    $result.appendChild(v);
+
+    // 吃完可以直接把这道菜从转盘里删掉
+    var act = document.createElement('div');
+    act.className = 'result-actions';
+
+    var eaten = document.createElement('button');
+    eaten.className = 'btn btn-eaten btn-tiny';
+    eaten.type = 'button';
+    eaten.textContent = '✓ 吃过了，从转盘删掉';
+    eaten.addEventListener('click', function(){
+      var idx = foods.indexOf(name);
+      if(idx === -1){
+        flashResult('「' + name + '」已经不在转盘里了', false);
+        return;
+      }
+      foods.splice(idx,1);
+      saveFoods();
+      renderTags();
+      flashResult('已把「' + name + '」从转盘删掉 🎉', true);
+    });
+
+    var keep = document.createElement('button');
+    keep.className = 'btn btn-ghost btn-tiny';
+    keep.type = 'button';
+    keep.textContent = '留着，以后还吃';
+    keep.addEventListener('click', function(){
+      flashResult('好，留着～', false);
+    });
+
+    act.appendChild(eaten);
+    act.appendChild(keep);
+    $result.appendChild(act);
+
+    // 让指针"叮"一下
+    $pointer.classList.add('tick');
+    setTimeout(function(){ $pointer.classList.remove('tick'); }, 160);
+
+    addHistory(name);
+  }
+
+  function flashResult(msg, big){
+    $result.innerHTML = '';
+    var s = document.createElement('span');
+    s.className = big ? 'value' : 'label';
+    s.textContent = msg;
+    if(big) s.classList.add('hit');
+    $result.appendChild(s);
+  }
+
+  /* ---------------- 记录 ---------------- */
+  function pad(x){ return x < 10 ? '0'+x : ''+x; }
+  function nowStr(){
+    var d = new Date();
+    return (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function addHistory(name){
+    history.unshift({ food:name, time:nowStr(), ts:Date.now() });
+    if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+    saveHistory();
+    renderHistory();
+  }
+  function renderHistory(){
+    $history.innerHTML = '';
+    if(!history.length){
+      $historyEmpty.style.display = 'block';
+      return;
+    }
+    $historyEmpty.style.display = 'none';
+    history.forEach(function(h, i){
+      var li = document.createElement('li');
+
+      var left = document.createElement('span');
+      left.className = 'h-left';
+      var f = document.createElement('span');
+      f.className = 'h-food';
+      f.textContent = '🍽 ' + h.food;
+      var t = document.createElement('span');
+      t.className = 'h-time';
+      t.textContent = h.time;
+      left.appendChild(f);
+      left.appendChild(t);
+
+      var del = document.createElement('button');
+      del.className = 'h-del';
+      del.type = 'button';
+      del.title = '删掉这条记录';
+      del.textContent = '×';
+      del.addEventListener('click', function(){ removeHistory(i); });
+
+      li.appendChild(left);
+      li.appendChild(del);
+      $history.appendChild(li);
+    });
+  }
+
+  function removeHistory(i){
+    history.splice(i,1);
+    saveHistory();
+    renderHistory();
+    flashResult('已从记录中删掉一条', false);
+  }
+
+  /* ---------------- 事件 ---------------- */
+  $addBtn.addEventListener('click', addFood);
+  $input.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addFood(); }
+  });
+  $spinBtn.addEventListener('click', spin);
+
+  document.getElementById('presetBtn').addEventListener('click', function(){
+    var added = 0;
+    PRESETS.forEach(function(p){
+      if(foods.indexOf(p) === -1){ foods.push(p); added++; }
+    });
+    saveFoods();
+    renderTags();
+    flashResult(added ? ('已填入 ' + added + ' 样常见食物 🍱') : '常见食物都在列表里啦', false);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    if(!foods.length) return;
+    if(confirm('确定清空所有食物吗？')){
+      foods = [];
+      saveFoods();
+      renderTags();
+      flashResult('已清空，重新开始记录吧', false);
+    }
+  });
+
+  document.getElementById('clearHistory').addEventListener('click', function(){
+    if(!history.length) return;
+    if(confirm('确定清空吃饭记录吗？')){
+      history = [];
+      saveHistory();
+      renderHistory();
+    }
+  });
+
+  // 键盘：空格快捷转
+  document.addEventListener('keydown', function(e){
+    if(e.code === 'Space' && document.activeElement !== $input && !spinning){
+      e.preventDefault();
+      spin();
+    }
+  });
+
+  /* ---------------- 初始化 ---------------- */
+  load();
+  renderTags();
+  renderHistory();
+  if(!foods.length){
+    $result.innerHTML = '<span class="label">转转盘，交给命运</span>';
+  }
+})();
+</script>
+</body>
+</html>
